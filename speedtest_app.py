@@ -121,7 +121,7 @@ def send_email():
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = EMAIL_RECIPIENT
 
-    msg.set_content(f"Download: {convert_size(results.download, True)} should be: {results.download_threshold}\nUpload: {convert_size(results.upload, True)}\nPing: {results.ping} ms")
+    msg.set_content(f"Download: {convert_size(results.download, True)} should be: {results.download_threshold}nUpload: {convert_size(results.upload, True)}\nPing: {results.ping} ms")
 
     if REAL_RUN:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
