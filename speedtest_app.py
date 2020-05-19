@@ -3,7 +3,9 @@ import config
 import sqlite3
 import logging
 import math
+import smtplib
 from datetime import datetime
+from email.message import EmailMessage
 
 
 # Fetching config params, all are Boolean values to dictate their run mode.
@@ -42,6 +44,7 @@ class SpeedTest:
             ping = 23.088
             image_result = "test run"
         self.download = download
+        self.download_threshold = config.thresholds["download"]
         self.upload = upload
         self.ping = ping
         self.image_result = image_result
@@ -107,7 +110,36 @@ def convert_size(size_bytes, suffix):
         return f"{s} {size_name[i]}/s"
     return s
 
+def send_email():
+    # Retrieving config for Gmail
+    EMAIL_ADDRESS = config.gmail["sender_email"]
+    EMAIL_PASSWORD = config.gmail["sender_password"]
+    EMAIL_RECIPIENT = config.gmail["recipient_email"]
+
+    msg = EmailMessage()
+    msg['Subject'] = 'Speedtest Results'
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = EMAIL_RECIPIENT
+
+    msg.set_content(f"Download: {convert_size(results.download, True)} should be: {results.download_threshold}\nUpload: {convert_size(results.upload, True)}\nPing: {results.ping} ms")
+
+    if REAL_RUN:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            smtp.send_message(msg)
+    else:
+        # Run this command in terminal before running the app to run a debug server on your local to see these messages.
+        # python3 -m smtpd -c DebuggingServer -n localhost:1025
+        with smtplib.SMTP('localhost', 1025) as smtp:
+            smtp.send_message(msg)
+
 results = SpeedTest()
 insert_to_db(datetime.now(), convert_size(results.download, False), convert_size(results.upload, False), results.ping, results.image_result)
 
-print(f"Download: {convert_size(results.download, True)}\nUpload: {convert_size(results.upload, True)}\nPing: {results.ping} ms")
+if convert_size(results.download, False) <= results.download_threshold:
+    logger.warning(f"Download Threshold hit. Current Download:{convert_size(results.download, False)}, Threshold: {results.download_threshold}")
+    logger.info("Sending email notification")
+    send_email()
+    logger.info("Email notification successfully sent")
+else:
+    logger.info("Download Threshold not hit")
