@@ -2,6 +2,7 @@ import speedtest
 import config
 import sqlite3
 import logging
+import math
 from datetime import datetime
 
 
@@ -35,9 +36,10 @@ class SpeedTest:
             ping = results_dict["ping"]
             image_result = results_dict["share"]
         else:
-            download = 999
-            upload = 999
-            ping = 0
+            logger.debug("Dry run initiated")
+            download = 92940235.48505305
+            upload = 9411432.82589555
+            ping = 23.088
             image_result = "test run"
         self.download = download
         self.upload = upload
@@ -89,5 +91,23 @@ def insert_to_db(date, download, upload, ping, image_result):
         logger.debug(f"INSERT to DB SUCCESSFUL")
         db.close()
 
+def convert_size(size_bytes, suffix):
+    '''
+    Converts bytes to its prettier version e.g. KB/MB per second
+
+    integer : size_bytes
+    '''
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    if suffix:
+        return f"{s} {size_name[i]}/s"
+    return s
+
 results = SpeedTest()
-insert_to_db(datetime.now(), results.download, results.upload, results.ping, results.image_result)
+insert_to_db(datetime.now(), convert_size(results.download, False), convert_size(results.upload, False), results.ping, results.image_result)
+
+print(f"Download: {convert_size(results.download, True)}\nUpload: {convert_size(results.upload, True)}\nPing: {results.ping} ms")
