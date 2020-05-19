@@ -1,0 +1,5 @@
+config.py
+ideas.txt
+settings.json
+*.log
+*.db
